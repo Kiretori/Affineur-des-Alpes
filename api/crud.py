@@ -92,6 +92,15 @@ def _decrement_field(
         )
 
 
+def _fetch_by(db: Session, model, filters: dict) -> list:
+    query = db.query(model).filter_by(**filters)
+    if query.count() == 0:
+        raise ValueError(
+            f"No records found for {model.__name__} with filters {filters}"
+        )
+    return query.all()
+
+
 # Insert Magasin entry
 def insert_magasin(
     db: Session,
@@ -378,16 +387,50 @@ def update_produit_prix(db: Session, id_produit: int, new_prix: float) -> int:
 def increment_produit_stock(
     db: Session, id_produit: int, increment_value: float
 ) -> int:
-    affected_products_count = _increment_field(
+    return _increment_field(
         db, Produit, {"id_produit": id_produit}, "stock_central", increment_value
     )
-    return affected_products_count
 
 
 def decrement_produit_stock(
     db: Session, id_produit: int, decrement_value: float
 ) -> int:
-    affected_products_count = _decrement_field(
+    return _decrement_field(
         db, Produit, {"id_produit": id_produit}, "stock_central", decrement_value
     )
-    return affected_products_count
+
+
+def increment_fidelite_client(
+    db: Session, id_client: int, increment_value: float
+) -> int:
+    return _increment_field(
+        db, Client, {"id_client": id_client}, "points_fidelite", increment_value
+    )
+
+
+def decrement_fidelite_client(
+    db: Session, id_client: int, decrement_value: float
+) -> int:
+    return _decrement_field(
+        db, Client, {"id_client": id_client}, "points_fidelite", decrement_value
+    )
+
+
+# Rechercher client par id
+def fetch_client_by_id(db: Session, id_client: int) -> Client:
+    return _fetch_by(db, Client, {"id_client": id_client})[0]
+
+
+# Rechercher client par nom
+def fetch_client_by_name(db: Session, nom_client: int) -> list[Client]:
+    return _fetch_by(db, Client, {"nom_client": nom_client})
+
+
+# Rechercher client par points de fidelité
+def fetch_client_by_fidelite(db: Session, points_fidelite: int) -> list[Client]:
+    return _fetch_by(db, Client, {"points_fidelite": points_fidelite})
+
+
+# Rechercher client par type
+def fetch_client_by_type(db: Session, type_client: str) -> list[Client]:
+    return _fetch_by(db, Client, {"type_client": type_client})

@@ -1,5 +1,5 @@
 import api.crud as crud
-from database.models import Magasin, Produit
+from database.models import Magasin, Produit, Client
 
 
 def test_insert_magasin(db_session):
@@ -132,3 +132,155 @@ def test_decrement_produit_stock_neg(db_session):
 
     assert affected == 1
     assert produit_from_db.stock_central == 0
+
+
+def test_increment_fidelite_client(db_session):
+    client = crud.insert_client(
+        db=db_session,
+        id_client=1,
+        nom_client="test client",
+        type_client="test type",
+        adresse="test address",
+        telephone="5555555",
+        point_fidelite=50,
+    )
+    client_from_db = (
+        db_session.query(Client).filter(Client.id_client == client.id_client).first()
+    )
+    assert client_from_db.points_fidelite == 50
+    affected = crud.increment_fidelite_client(
+        db=db_session, id_client=1, increment_value=1000
+    )
+    db_session.refresh(client_from_db)
+
+    assert affected == 1
+    assert client_from_db.points_fidelite == 1050
+
+
+def test_decrement_fidelite_client(db_session):
+    client = crud.insert_client(
+        db=db_session,
+        id_client=1,
+        nom_client="test client",
+        type_client="test type",
+        adresse="test address",
+        telephone="5555555",
+        point_fidelite=50,
+    )
+    client_from_db = (
+        db_session.query(Client).filter(Client.id_client == client.id_client).first()
+    )
+    assert client_from_db.points_fidelite == 50
+    affected = crud.decrement_fidelite_client(
+        db=db_session, id_client=1, decrement_value=1000
+    )
+    db_session.refresh(client_from_db)
+
+    assert affected == 1
+    assert client_from_db.points_fidelite == 0
+
+
+def test_fetch_client_by_id(db_session):
+    client = crud.insert_client(
+        db=db_session,
+        id_client=1,
+        nom_client="test client",
+        type_client="test type",
+        adresse="test address",
+        telephone="5555555",
+        point_fidelite=50,
+    )
+
+    client_from_db = crud.fetch_client_by_id(db_session, 1)
+    assert client.id_client == client_from_db.id_client  # type: ignore
+    assert client.nom_client == client_from_db.nom_client  # type: ignore
+
+
+def test_fetch_client_by_fidelite(db_session):
+    crud.insert_client(
+        db=db_session,
+        id_client=1,
+        nom_client="test client1",
+        type_client="test type",
+        adresse="test address",
+        telephone="5555555",
+        point_fidelite=0,
+    )
+    client2 = crud.insert_client(
+        db=db_session,
+        id_client=2,
+        nom_client="test client2",
+        type_client="test type",
+        adresse="test address",
+        telephone="5555555",
+        point_fidelite=50,
+    )
+    client3 = crud.insert_client(
+        db=db_session,
+        id_client=3,
+        nom_client="test client3",
+        type_client="test type",
+        adresse="test address",
+        telephone="5555555",
+        point_fidelite=50,
+    )
+    client4 = crud.insert_client(
+        db=db_session,
+        id_client=4,
+        nom_client="test client4",
+        type_client="test type",
+        adresse="test address",
+        telephone="5555555",
+        point_fidelite=50,
+    )
+
+    clients_from_db = crud.fetch_client_by_fidelite(db_session, 50)
+    assert len(clients_from_db) == 3
+    assert client2.nom_client == clients_from_db[0].nom_client  # type: ignore
+    assert client3.nom_client == clients_from_db[1].nom_client  # type: ignore
+    assert client4.nom_client == clients_from_db[2].nom_client  # type: ignore
+
+
+def test_fetch_client_by_type(db_session):
+    crud.insert_client(
+        db=db_session,
+        id_client=1,
+        nom_client="test client1",
+        type_client="Epicerie",
+        adresse="test address",
+        telephone="5555555",
+        point_fidelite=0,
+    )
+    client2 = crud.insert_client(
+        db=db_session,
+        id_client=2,
+        nom_client="test client2",
+        type_client="Individu",
+        adresse="test address",
+        telephone="5555555",
+        point_fidelite=50,
+    )
+    client3 = crud.insert_client(
+        db=db_session,
+        id_client=3,
+        nom_client="test client3",
+        type_client="Individu",
+        adresse="test address",
+        telephone="5555555",
+        point_fidelite=50,
+    )
+    client4 = crud.insert_client(
+        db=db_session,
+        id_client=4,
+        nom_client="test client4",
+        type_client="Individu",
+        adresse="test address",
+        telephone="5555555",
+        point_fidelite=50,
+    )
+
+    clients_from_db = crud.fetch_client_by_type(db_session, "Individu")
+    assert len(clients_from_db) == 3
+    assert client2.nom_client == clients_from_db[0].nom_client  # type: ignore
+    assert client3.nom_client == clients_from_db[1].nom_client  # type: ignore
+    assert client4.nom_client == clients_from_db[2].nom_client  # type: ignore
