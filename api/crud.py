@@ -1,5 +1,7 @@
 from datetime import datetime
+from sqlalchemy import func
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 from database.models import (
     Magasin,
     Produit,
@@ -14,12 +16,80 @@ from database.models import (
 )
 
 
-def get_foreign_key_record(db: Session, model, **filters):
+def _get_foreign_key_record(db: Session, model, **filters):
     record = db.query(model).filter_by(**filters).first()
     if not record:
         raise ValueError(f"{model.__name__} not found with filters {filters}")
     return record
 
+
+def _update_fields(db: Session, model, filters: dict, updates: dict) -> int:
+    query = db.query(model).filter_by(**filters)
+
+    if query.count() == 0:
+        raise ValueError(
+            f"No records found for {model.__name__} with filters {filters}"
+        )
+
+    try:
+        # Update record(s) with new values
+        num_rows_updated = query.update(updates, synchronize_session="fetch")
+        db.commit()
+        return num_rows_updated
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise ValueError(f"Error updating {model.__name__}: {e}")
+
+
+def _increment_field(
+    db: Session, model, filters: dict, field_to_increment: str, increment_value: float
+) -> int:
+    query = db.query(model).filter_by(**filters)
+    if query.count() == 0:
+        raise ValueError(
+            f"No records found for {model.__name__} with filters {filters}"
+        )
+    try:
+        # Update record(s) with new values
+        num_rows_updated = query.update(
+            {field_to_increment: getattr(model, field_to_increment) + increment_value},
+            synchronize_session="fetch",
+        )
+        db.commit()
+        return num_rows_updated
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise ValueError(
+            f"Error incrementing {field_to_increment} for {model.__name__}: {e}"
+        )
+
+
+def _decrement_field(
+    db: Session, model, filters: dict, field_to_decrement: str, decrement_value: float
+) -> int:
+    query = db.query(model).filter_by(**filters)
+    if query.count() == 0:
+        raise ValueError(
+            f"No records found for {model.__name__} with filters {filters}"
+        )
+
+    try:
+        # Update record(s) with new values
+        num_rows_updated = query.update(
+            {
+                field_to_decrement: func.max(
+                    getattr(model, field_to_decrement) - decrement_value, 0
+                )
+            },
+            synchronize_session="fetch",
+        )
+        db.commit()
+        return num_rows_updated
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise ValueError(
+            f"Error incrementing {field_to_decrement} for {model.__name__}: {e}"
+        )
 
 
 # Insert Magasin entry
@@ -52,7 +122,7 @@ def insert_produit(
     nom_produit: str,
     categorie: str,
     prix_unitaire: float,
-    stock_central: str | None,
+    stock_central: int | None,
 ) -> Produit:
     produit = Produit(
         id_produit=id_produit,
@@ -103,7 +173,7 @@ def insert_promotion(
     date_fin: str,
     taux_reduction: float,
 ) -> Promotion:
-    produit = get_foreign_key_record(db, Produit, id_produit=id_produit)
+    produit = _get_foreign_key_record(db, Produit, id_produit=id_produit)
 
     if not produit:
         raise ValueError("Produit not found")
@@ -132,8 +202,8 @@ def insert_commande(
     date_commande: datetime,
     statut_commande: str,
 ) -> Commande:
-    client = get_foreign_key_record(db, Client, id_client=id_client)
-    magasin = get_foreign_key_record(db, Magasin, id_magasin=id_magasin)
+    client = _get_foreign_key_record(db, Client, id_client=id_client)
+    magasin = _get_foreign_key_record(db, Magasin, id_magasin=id_magasin)
 
     if not client or not magasin:
         if not client:
@@ -164,8 +234,8 @@ def insert_ligne_commande(
     quantite: int,
     prix_unitaire: float,
 ) -> LigneCommande:
-    commande = get_foreign_key_record(db, Commande, id_commande=id_commande)
-    produit = get_foreign_key_record(db, Produit, id_produit=id_produit)
+    commande = _get_foreign_key_record(db, Commande, id_commande=id_commande)
+    produit = _get_foreign_key_record(db, Produit, id_produit=id_produit)
 
     if not commande or not produit:
         if not commande:
@@ -196,8 +266,8 @@ def insert_livraison(
     date_livraison: datetime,
     statut_livraison: str,
 ) -> Livraison:
-    commande = get_foreign_key_record(db, Commande, id_commande=id_commande)
-    magasin = get_foreign_key_record(db, Magasin, id_magasin=id_magasin)
+    commande = _get_foreign_key_record(db, Commande, id_commande=id_commande)
+    magasin = _get_foreign_key_record(db, Magasin, id_magasin=id_magasin)
 
     if not commande or not magasin:
         if not commande:
@@ -227,7 +297,7 @@ def insert_facture(
     montant_total: float,
     date_facture: datetime,
 ) -> Facture:
-    commande = get_foreign_key_record(db, Commande, id_commande=id_commande)
+    commande = _get_foreign_key_record(db, Commande, id_commande=id_commande)
 
     if not commande:
         raise ValueError("Commande not found")
@@ -249,8 +319,8 @@ def insert_facture(
 def insert_stock_magasin(
     db: Session, id_magasin: int, id_produit: int, quantite: int | None
 ) -> StockMagasin:
-    magasin = get_foreign_key_record(db, Magasin, id_magasin=id_magasin)
-    produit = get_foreign_key_record(db, Produit, id_produit=id_produit)
+    magasin = _get_foreign_key_record(db, Magasin, id_magasin=id_magasin)
+    produit = _get_foreign_key_record(db, Produit, id_produit=id_produit)
 
     if not magasin or not produit:
         if not magasin:
@@ -279,7 +349,7 @@ def insert_historique_fidelite(
     point_ajoutes: int,
     description: str | None,
 ) -> HistoriqueFidelite:
-    client = get_foreign_key_record(db, Client, id_client=id_client)
+    client = _get_foreign_key_record(db, Client, id_client=id_client)
 
     if not client:
         raise ValueError("Client not found")
@@ -296,3 +366,28 @@ def insert_historique_fidelite(
     db.commit()
     db.refresh(historique_fidelite)
     return historique_fidelite
+
+
+def update_produit_prix(db: Session, id_produit: int, new_prix: float) -> int:
+    affected_products_count = _update_fields(
+        db, Produit, {"id_produit": id_produit}, {"prix_unitaire": new_prix}
+    )
+    return affected_products_count
+
+
+def increment_produit_stock(
+    db: Session, id_produit: int, increment_value: float
+) -> int:
+    affected_products_count = _increment_field(
+        db, Produit, {"id_produit": id_produit}, "stock_central", increment_value
+    )
+    return affected_products_count
+
+
+def decrement_produit_stock(
+    db: Session, id_produit: int, decrement_value: float
+) -> int:
+    affected_products_count = _decrement_field(
+        db, Produit, {"id_produit": id_produit}, "stock_central", decrement_value
+    )
+    return affected_products_count
