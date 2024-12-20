@@ -489,3 +489,7 @@ def fetch_client_by_fidelite(db: Session, points_fidelite: int) -> list[Client]:
 # Rechercher client par type
 def fetch_client_by_type(db: Session, type_client: str) -> list[Client]:
     return _fetch_by(db, Client, {"type_client": type_client})
+
+
+def delete_client_by_id(db: Session, id_client: int) -> int:
+    return _delete_by(db, Client, {"id_client": id_client})
