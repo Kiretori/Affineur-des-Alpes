@@ -491,5 +491,9 @@ def fetch_client_by_type(db: Session, type_client: str) -> list[Client]:
     return _fetch_by(db, Client, {"type_client": type_client})
 
 
+def fetch_client_by_conditions(db: Session, conditions: list) -> list[Client]:
+    return _fetch_by_conditions(db, Client, conditions, "and")
+
+
 def delete_client_by_id(db: Session, id_client: int) -> int:
     return _delete_by(db, Client, {"id_client": id_client})
