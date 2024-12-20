@@ -284,3 +284,72 @@ def test_fetch_client_by_type(db_session):
     assert client2.nom_client == clients_from_db[0].nom_client  # type: ignore
     assert client3.nom_client == clients_from_db[1].nom_client  # type: ignore
     assert client4.nom_client == clients_from_db[2].nom_client  # type: ignore
+
+
+def test_delete_client_id(db_session):
+    crud.insert_client(
+        db=db_session,
+        id_client=1,
+        nom_client="test client1",
+        type_client="Epicerie",
+        adresse="test address",
+        telephone="5555555",
+        point_fidelite=0,
+    )
+    crud.insert_client(
+        db=db_session,
+        id_client=2,
+        nom_client="test client2",
+        type_client="Individu",
+        adresse="test address",
+        telephone="5555555",
+        point_fidelite=50,
+    )
+
+    deleted = crud.delete_client_by_id(db_session, 2)
+
+    clients = db_session.query(Client).all()
+
+    assert deleted == 1
+    assert len(clients) == 1
+
+
+def test_fetch_produit_by_condition(db_session):
+    crud.insert_produit(
+        db=db_session,
+        id_produit=1,
+        nom_produit="Test product",
+        categorie="Cheese",
+        prix_unitaire=600,
+        stock_central=50,
+    )
+    crud.insert_produit(
+        db=db_session,
+        id_produit=2,
+        nom_produit="Test product",
+        categorie="Cheese",
+        prix_unitaire=40,
+        stock_central=100,
+    )
+    crud.insert_produit(
+        db=db_session,
+        id_produit=3,
+        nom_produit="Test product",
+        categorie="Cheese",
+        prix_unitaire=100,
+        stock_central=200,
+    )
+    crud.insert_produit(
+        db=db_session,
+        id_produit=4,
+        nom_produit="Test product",
+        categorie="Cheese",
+        prix_unitaire=600,
+        stock_central=300,
+    )
+
+    produits = crud.fetch_produit_by_condition(
+        db_session, [Produit.stock_central >= 100, Produit.prix_unitaire == 600]
+    )
+
+    assert len(produits) == 1

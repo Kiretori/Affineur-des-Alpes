@@ -3,7 +3,9 @@ from sqlalchemy.sql import and_, or_
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-from database.models import (
+from ..database.models import (
+    User,
+    UserType,
     Magasin,
     Produit,
     Client,
@@ -123,6 +125,39 @@ def _delete_by(db: Session, model, filters: dict) -> int:
     except SQLAlchemyError as e:
         db.rollback()
         raise ValueError(f"Error deleting {model.__name__} with {filters}: {e}")
+
+
+# AUTH
+def insert_regular_user(
+    db: Session, id_user: int | None, username: str, password: str
+) -> User:
+    user = User(
+        id_user=id_user,
+        username=username,
+        hashed_password=password,
+        role=UserType.regular,
+    )
+
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def insert_admin_user(
+    db: Session, id_user: int | None, username: str, password: str
+) -> User:
+    user = User(
+        id_user=id_user,
+        username=username,
+        hashed_password=password,
+        role=UserType.admin,
+    )
+
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
 
 
 # Insert Magasin entry
@@ -431,7 +466,7 @@ def fetch_produit_by_categorie(db: Session, categorie: str) -> list[Produit]:
     return _fetch_by(db, Produit, {"categorie": categorie})
 
 
-def fetch_produit_by_prix_condition(db: Session, conditions: list) -> list[Produit]:
+def fetch_produit_by_condition(db: Session, conditions: list) -> list[Produit]:
     return _fetch_by_conditions(db, Produit, conditions, "and")
 
 
@@ -497,3 +532,19 @@ def fetch_client_by_conditions(db: Session, conditions: list) -> list[Client]:
 
 def delete_client_by_id(db: Session, id_client: int) -> int:
     return _delete_by(db, Client, {"id_client": id_client})
+
+
+def fetch_commande_by_id(db: Session, id_commande: int) -> Commande:
+    return _fetch_by(db, Commande, {"id_commande": id_commande})[0]
+
+
+def fetch_commande_by_conditions(
+    db: Session, conditions: list, logic: str
+) -> list[Commande]:
+    return _fetch_by_conditions(db, Commande, conditions, logic)
+
+
+def modify_commande_status(db: Session, id_commande: int, new_status: str) -> int:
+    return _update_fields(
+        db, Commande, {"id_commande": id_commande}, {"status_commande": new_status}
+    )

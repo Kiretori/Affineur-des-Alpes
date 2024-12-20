@@ -1,9 +1,52 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Date, DECIMAL, DateTime
+from datetime import datetime, timedelta, timezone
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    ForeignKey,
+    Date,
+    DECIMAL,
+    DateTime,
+    Enum,
+)
 from sqlalchemy.orm import declarative_base, relationship
+import enum
 
 Base = declarative_base()
 
 
+# ================================== AUTH TABLES ==================================
+class UserType(enum.Enum):
+    admin = "admin"
+    regular = "regular"
+
+
+class User(Base):
+    __tablename__ = "Users"
+
+    id_user = Column(Integer, primary_key=True, autoincrement=True)
+    username = Column(String, unique=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    role = Column(Enum(UserType), default=UserType.regular)
+
+    sessions = relationship("Session", back_populates="user")
+
+
+class Session(Base):
+    __tablename__ = "Sessions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("Users.id_user"), nullable=False)
+    session_token = Column(String, unique=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    expires_at = Column(
+        DateTime, default=lambda: datetime.now(timezone.utc) + timedelta(days=7)
+    )  # Example: sessions expire in 1 hour
+
+    user = relationship("User", back_populates="sessions")
+
+
+# =================================================================================
 class Magasin(Base):
     __tablename__ = "Magasins"
 
