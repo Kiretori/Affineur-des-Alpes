@@ -1,6 +1,7 @@
 from datetime import timedelta, datetime, timezone
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request, Form
+from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from starlette import status
@@ -37,35 +38,68 @@ class Token(BaseModel):
 db_dependency = Annotated[Session, Depends(get_db_connection)]
 
 
-@auth_router.post("/", status_code=status.HTTP_201_CREATED)
-async def create_user(db: db_dependency, create_user_request: CreateUserRequest):
+@auth_router.post("/signup", response_class=HTMLResponse)
+async def signup(
+    request: Request,
+    db: db_dependency,
+    username: str = Form(...),
+    password: str = Form(...),
+    confirm_password: str = Form(...),
+):
+    if password != confirm_password:
+        return """
+        <div class="error-message" role="alert">
+            Passwords do not match
+        </div>
+        """
+
+    # Check if user exists
+    existing_user = db.query(User).filter(User.username == username).first()
+    if existing_user:
+        return """
+        <div class="error-message" role="alert">
+            Username already exists
+        </div>
+        """
+
+    # Create new user
     create_user_model = User(
-        id_user=None,
-        username=create_user_request.username,
-        hashed_password=bcrypt_context.hash(create_user_request.password),
+        username=username,
+        hashed_password=bcrypt_context.hash(password),
         role=UserType.regular,
     )
     db.add(create_user_model)
     db.commit()
 
+    # Return success message
+    return """
+    <div class="success-message" role="alert">
+        Account created successfully! You can now login.
+    </div>
+    """
 
-@auth_router.post("/token", response_model=Token)
-async def login_for_access_token(
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: db_dependency
+
+@auth_router.post("/login", response_class=HTMLResponse)
+async def login(
+    request: Request,
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    db: db_dependency,
 ):
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate user.²"
-        )
-    token = create_access_token(
-        user.username,  # type: ignore
-        user.id_user,  # type: ignore
-        user.role,  # type: ignore
-        timedelta(minutes=20),
-    )
+        # Return error message that HTMX will swap into the UI
+        return """
+        <div class="error-message" role="alert">
+            Invalid username or password
+        </div>
+        """
 
-    return {"access_token": token, "token_type": "bearer"}
+    token = create_access_token(
+        user.username, user.id_user, user.role, timedelta(minutes=20)
+    )
+    response = RedirectResponse(url="/dashboard", status_code=302)
+    response.set_cookie(key="access_token", value=f"Bearer {token}", httponly=True)
+    return response
 
 
 def authenticate_user(db, username: str, password: str) -> bool | User:

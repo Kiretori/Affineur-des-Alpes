@@ -2,7 +2,8 @@ from dotenv import load_dotenv
 import os
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from ..api import auth, routes
+from .api import auth, routes
+from pathlib import Path
 
 load_dotenv()
 
@@ -11,7 +12,11 @@ if not secret_key:
     raise ValueError("Secret key not provided in environment")
 app = FastAPI()
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+BASE_DIR = Path(__file__).resolve().parent
+
+# Mount the static directory
+app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
+
 
 app.include_router(auth.auth_router)
 app.include_router(routes.router)
