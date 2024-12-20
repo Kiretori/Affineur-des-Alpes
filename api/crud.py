@@ -1,4 +1,5 @@
 from datetime import datetime
+from sqlalchemy.sql import and_, or_
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
@@ -94,11 +95,34 @@ def _decrement_field(
 
 def _fetch_by(db: Session, model, filters: dict) -> list:
     query = db.query(model).filter_by(**filters)
-    if query.count() == 0:
-        raise ValueError(
-            f"No records found for {model.__name__} with filters {filters}"
-        )
     return query.all()
+
+
+def _fetch_by_conditions(db: Session, model, conditions: list, logic: str) -> list:
+    if not conditions:
+        return db.query(model).all()
+
+    logic_func = and_ if logic == "and" else or_ if logic == "or" else None
+    if logic_func is None:
+        raise ValueError(f"Unsupported logic: {logic}")
+
+    try:
+        query = db.query(model).filter(logic_func(*conditions))
+        return query.all()
+    except SQLAlchemyError as e:
+        raise ValueError(
+            f"Error fetching with {logic} conditions {conditions}. Error: {e}"
+        )
+
+
+def _delete_by(db: Session, model, filters: dict) -> int:
+    try:
+        num_deleted = db.query(model).filter_by(**filters).delete()
+        db.commit()
+        return num_deleted
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise ValueError(f"Error deleting {model.__name__} with {filters}: {e}")
 
 
 # Insert Magasin entry
@@ -378,10 +402,41 @@ def insert_historique_fidelite(
 
 
 def update_produit_prix(db: Session, id_produit: int, new_prix: float) -> int:
-    affected_products_count = _update_fields(
+    return _update_fields(
         db, Produit, {"id_produit": id_produit}, {"prix_unitaire": new_prix}
     )
-    return affected_products_count
+
+
+def update_produit_nom(db: Session, id_produit: int, new_nom: str) -> int:
+    return _update_fields(
+        db, Produit, {"id_produit": id_produit}, {"nom_produit": new_nom}
+    )
+
+
+def update_produit_categorie(db: Session, id_produit: int, new_categorie: str) -> int:
+    return _update_fields(
+        db, Produit, {"id_produit": id_produit}, {"categorie": new_categorie}
+    )
+
+
+def fetch_produit_by_id(db: Session, id_produit: str) -> Produit:
+    return _fetch_by(db, Produit, {"id_produit": id_produit})[0]
+
+
+def fetch_produit_by_nom(db: Session, nom_produit: str) -> list[Produit]:
+    return _fetch_by(db, Produit, {"nom_produit": nom_produit})
+
+
+def fetch_produit_by_categorie(db: Session, categorie: str) -> list[Produit]:
+    return _fetch_by(db, Produit, {"categorie": categorie})
+
+
+def fetch_produit_by_prix_condition(db: Session, conditions: list) -> list[Produit]:
+    return _fetch_by_conditions(db, Produit, conditions, "and")
+
+
+def delete_produit_by_id(db: Session, id_produit: int) -> int:
+    return _delete_by(db, Produit, {"id_produit": id_produit})
 
 
 def increment_produit_stock(
