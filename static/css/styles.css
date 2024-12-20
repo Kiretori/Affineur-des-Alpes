@@ -1,0 +1,134 @@
+/* Reset and Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
+}
+
+/* Container Styles */
+.container {
+    background-color: white;
+    border-radius: 20px;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 400px;
+    overflow: hidden;
+}
+
+/* Form Styles */
+.form-container {
+    padding: 40px;
+}
+
+.hidden {
+    display: none;
+}
+
+h2 {
+    color: #2d3748;
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.subtitle {
+    color: #718096;
+    font-size: 16px;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+/* Input Styles */
+.input-group {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.input-group .material-icons {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #a0aec0;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 15px 15px 15px 45px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 16px;
+    transition: border-color 0.3s ease;
+}
+
+.input-group input:focus {
+    border-color: #667eea;
+    outline: none;
+}
+
+.input-group input::placeholder {
+    color: #a0aec0;
+}
+
+/* Button Styles */
+.submit-btn {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+/* Switch Text Styles */
+.switch-text {
+    margin-top: 20px;
+    text-align: center;
+    color: #718096;
+}
+
+.switch-text a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.3s ease;
+}
+
+.switch-text a:hover {
+    color: #764ba2;
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+    .container {
+        margin: 20px;
+    }
+
+    .form-container {
+        padding: 30px;
+    }
+
+    h2 {
+        font-size: 24px;
+    }
+}
