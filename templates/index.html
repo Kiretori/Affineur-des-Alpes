@@ -21,7 +21,7 @@
             <!-- Message container for HTMX responses -->
             <div id="login-message"></div>
 
-            <form hx-post="/auth/login" hx-target="#login-message" hx-swap="innerHTML" hx-indicator=".spinner">
+            <form hx-post="/auth/token" hx-target="#login-message" hx-swap="innerHTML" hx-indicator=".spinner">
 
                 <div class="input-group">
                     <span class="material-icons">person</span>

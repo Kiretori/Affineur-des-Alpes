@@ -1,0 +1,156 @@
+{# templates/home.html #}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fromagerie Délice - Welcome</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/main.css') }}">
+    <!-- HTMX for dynamic updates -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="#">🧀 Fromagerie Délice</a>
+
+            <!-- Search Bar -->
+            <form class="d-flex mx-auto w-50">
+                <div class="input-group">
+                    <input type="search" class="form-control" placeholder="Search for cheeses..." hx-get="/api/search"
+                        hx-trigger="keyup changed delay:500ms" hx-target="#search-results">
+                    <button class="btn btn-outline-primary"><i class="bi bi-search"></i></button>
+                </div>
+            </form>
+
+            <!-- Nav Items -->
+            <div class="d-flex align-items-center">
+                <!-- Points Display -->
+                <div class="me-3">
+                    <span class="badge bg-primary">
+                        <i class="bi bi-star-fill"></i> Points: {{ user.points_fidelite }}
+                    </span>
+                </div>
+
+                <!-- User Menu -->
+                <div class="dropdown me-3">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-person-circle"></i> {{ user.username }}
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="/profile">My Profile</a></li>
+                        <li><a class="dropdown-item" href="/orders">My Orders</a></li>
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        <li><a class="dropdown-item" href="/logout">Logout</a></li>
+                    </ul>
+                </div>
+
+                <!-- Cart Button -->
+                <button class="btn btn-primary position-relative" hx-get="/cart" hx-target="#cart-modal-content">
+                    <i class="bi bi-cart3"></i>
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                        {{ cart_count if cart_count else 0 }}
+                    </span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container py-4">
+        <!-- Featured Section -->
+        <section class="mb-5">
+            <div class="row">
+                <!-- Promotions -->
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-body">
+                            <h4>Current Promotions</h4>
+                            <div class="row">
+                                {% for promo in promotions %}
+                                <div class="col-md-4 mb-3">
+                                    <div class="card h-100">
+                                        <div class="card-body">
+                                            <h5 class="card-title">{{ promo.produit.nom_produit }}</h5>
+                                            <p class="card-text text-danger">-{{ promo.taux_reduction }}% Off</p>
+                                            <p class="small">Valid until {{ promo.date_fin.strftime('%d %B %Y') }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Nearest Store -->
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h4>Nearest Store</h4>
+                            {% if nearest_store %}
+                            <p><i class="bi bi-shop"></i> {{ nearest_store.nom_magasin }}</p>
+                            <p><i class="bi bi-geo-alt"></i> {{ nearest_store.adresse }}</p>
+                            <p><i class="bi bi-telephone"></i> {{ nearest_store.telephone }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Products Grid -->
+        <section>
+            <h3 class="mb-4">Our Selection</h3>
+
+            <!-- Category Filter -->
+            <div class="btn-group mb-4">
+                <button class="btn btn-outline-primary active" hx-get="/api/products"
+                    hx-target="#products-grid">All</button>
+                {% for category in categories %}
+                <button class="btn btn-outline-primary" hx-get="/api/products?category={{ category }}"
+                    hx-target="#products-grid">{{ category }}</button>
+                {% endfor %}
+            </div>
+
+            <!-- Products -->
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4" id="products-grid">
+                {% for product in products %}
+                <div class="col">
+                    <div class="card h-100">
+                        <img src="{{ url_for('static', path='img/products/' + product.id_produit|string + '.jpg') }}"
+                            class="card-img-top" alt="{{ product.nom_produit }}">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ product.nom_produit }}</h5>
+                            <p class="card-text">{{ product.description }}</p>
+                            <p class="price">€{{ "%.2f"|format(product.prix_unitaire) }}</p>
+                            <button class="btn btn-primary w-100" hx-post="/api/cart/add"
+                                hx-vals='{"id": "{{ product.id_produit }}", "quantity": "1"}' hx-trigger="click">
+                                Add to Cart
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+    </main>
+
+    <!-- Cart Modal -->
+    {% include 'partials/cart_modal.html' %}
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

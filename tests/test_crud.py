@@ -1,5 +1,6 @@
+from datetime import datetime
 import api.crud as crud
-from database.models import Magasin, Produit, Client
+from database.models import Magasin, Produit, Client, Promotion
 
 
 def test_insert_magasin(db_session):
@@ -353,3 +354,27 @@ def test_fetch_produit_by_condition(db_session):
     )
 
     assert len(produits) == 1
+
+
+def test_fetch_promotion(db_session):
+    crud.insert_produit(
+        db=db_session,
+        id_produit=3,
+        nom_produit="Test product",
+        categorie="Cheese",
+        prix_unitaire=100,
+        stock_central=200,
+    )
+    promo = crud.insert_promotion(
+        db_session,
+        None,
+        3,
+        "Description",
+        datetime(2024, 12, 27, 12, 30),
+        datetime(2024, 12, 27, 12, 30),
+        "0.5",
+    )
+
+    promotions = db_session.query(Promotion).all()
+
+    assert promo.description == promotions[0].description

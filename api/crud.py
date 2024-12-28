@@ -3,7 +3,7 @@ from sqlalchemy.sql import and_, or_
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-from ..database.models import (
+from database.models import (
     User,
     UserType,
     Magasin,
